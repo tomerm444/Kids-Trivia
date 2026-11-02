@@ -1,3 +1,10 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#CFEBB3">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>הטריוויה הגדולה</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -149,9 +156,25 @@ h1 { font-family: var(--display); font-weight: 400; font-size: clamp(26px, 6vw, 
 @keyframes shake { 0%,100% { transform: translateX(0) } 25% { transform: translateX(-8px) } 75% { transform: translateX(8px) } }
 @keyframes wiggle { 0%,100% { transform: rotate(0) } 30% { transform: rotate(-2deg) scale(1.03) } 70% { transform: rotate(2deg) scale(1.03) } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
-@media (max-width: 420px) { .ans { font-size: 18px; padding: 12px 6px; } .ans .e { font-size: 36px; } .big-emoji { font-size: 70px; } .topic .tn { font-size: 19px; } }
+/* phones: stretch the game to fill the whole screen height */
+@media (max-width: 700px) {
+  .wrap { min-height: 100%; box-sizing: border-box; padding-block: 14px 20px; gap: 14px; }
+  .card { flex: 1; justify-content: center; }
+  .card.menu { justify-content: flex-start; }
+  .topics { flex: 1; grid-auto-rows: 1fr; }
+  .topic { justify-content: center; }
+  .topic .ti { font-size: 56px; }
+  .topic .tn { font-size: 22px; }
+  .topic .tc { font-size: 15px; }
+  .big-emoji { font-size: 96px; }
+  .answers { gap: 14px; }
+  .ans { min-height: 120px; }
+}
+@media (max-width: 420px) { .ans { font-size: 19px; padding: 12px 6px; } .ans .e { font-size: 40px; } .topic .tn { font-size: 20px; } }
 </style>
 
+</head>
+<body>
 <div class="wrap" dir="rtl" lang="he">
   <header>
     <h1>הטריוויה הגדולה</h1>
@@ -558,7 +581,7 @@ function showMenu() {
   score = 0; right = 0; wrong = 0; topic = null;
   runner.textContent = "🐆";
   updateScore(false);
-  card.className = "card";
+  card.className = "card menu";
   card.innerHTML = `
     <h2 class="pick-title">על מה נשחק היום?</h2>
     <p class="pick-sub">בחרו נושא ותתחילו לצבור נקודות</p>
@@ -663,3 +686,6 @@ function confetti() {
 
 showMenu();
 </script>
+
+</body>
+</html>
