@@ -1,0 +1,665 @@
+<title>הטריוויה הגדולה</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Secular+One&display=swap">
+<style>
+/* Layout: one centered column — trail to 100 on top, then either the topic picker or a question card with a 2×2 answer grid. Single sunny theme, chosen on purpose. */
+:root {
+  --leaf: #CFEBB3;
+  --leaf-deep: #A9D98A;
+  --jungle: #1F3D1A;
+  --bark: #6B4A2B;
+  --sun: #FFC93C;
+  --sun-deep: #F2A900;
+  --paper: #FFFDF5;
+  --good: #149463;
+  --good-soft: #D3F5E3;
+  --bad: #E2502F;
+  --bad-soft: #FFE0D6;
+  --muted: #55704A;
+  --display: "Secular One", "Fredoka", "Arial Hebrew", Arial, sans-serif;
+  --body: "Fredoka", "Arial Hebrew", Arial, sans-serif;
+  color-scheme: light;
+}
+html, body { height: 100%; }
+body {
+  background: var(--leaf);
+  background-image:
+    radial-gradient(circle at 12% 8%, rgba(255,201,60,.35) 0 90px, transparent 91px),
+    radial-gradient(circle at 90% 95%, var(--leaf-deep) 0 160px, transparent 161px);
+  background-attachment: fixed;
+  color: var(--jungle);
+  font-family: var(--body);
+  font-size: 18px;
+}
+.wrap {
+  max-width: 620px;
+  margin: 0 auto;
+  padding-block: 20px 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 18px;
+}
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(26px, 6vw, 34px); margin: 0; line-height: 1.1; text-wrap: balance; }
+.score {
+  font-family: var(--display); font-size: 30px; background: var(--sun); border: 3px solid var(--jungle);
+  border-radius: 999px; padding: 4px 18px; min-width: 96px; text-align: center;
+  font-variant-numeric: tabular-nums; box-shadow: 0 4px 0 var(--jungle);
+  transition: transform .2s;
+}
+.score.bump { transform: scale(1.18); }
+.score small { font-family: var(--body); font-size: 14px; font-weight: 600; }
+
+/* trail */
+.trail { position: relative; height: 56px; }
+.track {
+  position: absolute; inset: 22px 0 auto 0; height: 14px; border-radius: 999px;
+  background: repeating-linear-gradient(90deg, var(--bark) 0 10px, #85603C 10px 20px);
+  opacity: .35;
+}
+.fill {
+  position: absolute; top: 22px; right: 0; height: 14px; border-radius: 999px;
+  background: var(--good); width: 0%; transition: width .5s cubic-bezier(.3,1.4,.5,1);
+}
+.runner, .goal { position: absolute; top: 0; font-size: 38px; line-height: 1; }
+.runner { right: 0; transition: right .5s cubic-bezier(.3,1.4,.5,1); }
+.goal { left: -4px; }
+.trail-label { display: flex; justify-content: space-between; font-size: 14px; color: var(--muted); font-weight: 600; margin-top: -4px; }
+
+/* card */
+.card {
+  background: var(--paper); border: 3px solid var(--jungle); border-radius: 26px;
+  box-shadow: 0 7px 0 var(--jungle); padding: 22px 18px 24px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+.q-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 15px; font-weight: 600; flex-wrap: wrap; }
+.q-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  font: inherit; font-size: 15px; background: var(--leaf); color: var(--jungle);
+  border: 2px solid var(--jungle); border-radius: 999px; padding: 6px 12px; cursor: pointer;
+}
+.topic-tag { font-weight: 700; color: var(--jungle); }
+.big-emoji { font-size: 84px; text-align: center; line-height: 1; animation: pop .45s ease-out; }
+.question { font-family: var(--display); font-weight: 400; font-size: clamp(23px, 5.4vw, 30px); text-align: center; margin: 0; line-height: 1.3; text-wrap: balance; }
+.answers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ans {
+  font: inherit; font-size: 21px; font-weight: 600; color: var(--jungle); line-height: 1.25;
+  background: #fff; border: 3px solid var(--jungle); border-radius: 18px;
+  box-shadow: 0 5px 0 var(--jungle); padding: 14px 10px; cursor: pointer; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center;
+  transition: transform .08s, box-shadow .08s, background .2s;
+}
+.ans .e { font-size: 42px; line-height: 1; }
+.ans .t { overflow-wrap: anywhere; }
+.ans:hover:not(:disabled) { background: #FFF6D6; }
+.ans:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 var(--jungle); }
+.ans:focus-visible, .chip:focus-visible, .btn:focus-visible, .topic:focus-visible { outline: 4px solid var(--sun-deep); outline-offset: 3px; }
+.ans:disabled { cursor: default; }
+.ans.right { background: var(--good-soft); border-color: var(--good); box-shadow: 0 5px 0 var(--good); animation: wiggle .5s; }
+.ans.wrong { background: var(--bad-soft); border-color: var(--bad); box-shadow: 0 5px 0 var(--bad); animation: shake .4s; }
+.ans.dim { opacity: .45; }
+
+.feedback {
+  border-radius: 18px; padding: 14px 16px; font-size: 21px; font-weight: 600; text-align: center;
+  display: flex; flex-direction: column; gap: 12px; align-items: center;
+}
+.feedback.good { background: var(--good-soft); color: var(--good); }
+.feedback.bad { background: var(--bad-soft); color: var(--bad); }
+.feedback .pts { font-family: var(--display); font-size: 28px; }
+.btn {
+  font-family: var(--display); font-size: 24px; color: var(--jungle); background: var(--sun);
+  border: 3px solid var(--jungle); border-radius: 999px; box-shadow: 0 5px 0 var(--jungle);
+  padding: 8px 30px; cursor: pointer;
+}
+.btn.alt { background: #fff; }
+.btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--jungle); }
+
+/* topic picker */
+.pick-title { font-family: var(--display); font-weight: 400; font-size: clamp(26px, 6vw, 32px); text-align: center; margin: 0; }
+.pick-sub { text-align: center; margin: -8px 0 0; color: var(--muted); font-weight: 500; }
+.topics { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.topic {
+  font: inherit; color: var(--jungle); background: #fff; border: 3px solid var(--jungle); border-radius: 20px;
+  box-shadow: 0 5px 0 var(--jungle); padding: 14px 8px 12px; cursor: pointer; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  transition: transform .08s, box-shadow .08s, background .2s;
+}
+.topic:hover { background: #FFF6D6; }
+.topic:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--jungle); }
+.topic .ti { font-size: 50px; line-height: 1.05; }
+.topic .tn { font-family: var(--display); font-size: 22px; line-height: 1.2; }
+.topic .tc { font-size: 14px; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+.topic.all { grid-column: 1 / -1; background: var(--sun); flex-direction: row; justify-content: center; gap: 12px; }
+.topic.all .ti { font-size: 40px; }
+.topic.all:hover { background: #FFD666; }
+
+/* win */
+.win { text-align: center; align-items: center; }
+.win h2 { font-family: var(--display); font-weight: 400; font-size: 38px; margin: 0; }
+.win p { margin: 0; font-size: 20px; line-height: 1.5; }
+.trophy { font-size: 110px; line-height: 1; animation: pop .6s ease-out; }
+.stats { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.stat { background: var(--leaf); border-radius: 14px; padding: 8px 16px; font-weight: 600; }
+.stat b { font-family: var(--display); font-weight: 400; font-size: 26px; display: block; font-variant-numeric: tabular-nums; }
+.win-btns { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+#confetti { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+
+@keyframes pop { 0% { transform: scale(.4); opacity: 0 } 70% { transform: scale(1.12) } 100% { transform: scale(1); opacity: 1 } }
+@keyframes shake { 0%,100% { transform: translateX(0) } 25% { transform: translateX(-8px) } 75% { transform: translateX(8px) } }
+@keyframes wiggle { 0%,100% { transform: rotate(0) } 30% { transform: rotate(-2deg) scale(1.03) } 70% { transform: rotate(2deg) scale(1.03) } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+@media (max-width: 420px) { .ans { font-size: 18px; padding: 12px 6px; } .ans .e { font-size: 36px; } .big-emoji { font-size: 70px; } .topic .tn { font-size: 19px; } }
+</style>
+
+<div class="wrap" dir="rtl" lang="he">
+  <header>
+    <h1>הטריוויה הגדולה</h1>
+    <div class="score" id="score" aria-live="polite">0 <small>נק׳</small></div>
+  </header>
+
+  <div>
+    <div class="trail" aria-hidden="true">
+      <div class="track"></div>
+      <div class="fill" id="fill"></div>
+      <div class="goal">🏆</div>
+      <div class="runner" id="runner">🐆</div>
+    </div>
+    <div class="trail-label"><span>התחלה</span><span>100 נקודות = ניצחון!</span></div>
+  </div>
+
+  <main class="card" id="card"></main>
+</div>
+<canvas id="confetti"></canvas>
+
+<script>
+const GOAL = 100, STEP = 5;
+
+/* Each line: picture | question | correct answer | wrong | wrong | wrong
+   Each answer ends with its emoji after the last space. Answers get shuffled on screen. */
+const TOPICS = [
+{ id:"animals", name:"חיות", icon:"🦁", runner:"🐆", data:`
+🐄|איזו חיה אומרת ״מוּ״?|פרה 🐄|כבשה 🐑|חזיר 🐷|ברווז 🦆
+🦒|מי החיה הכי גבוהה בעולם?|ג׳ירפה 🦒|פיל 🐘|סוס 🐎|גמל 🐪
+🐼|מה הפנדה הכי אוהבת לאכול?|במבוק 🎋|דגים 🐟|גבינה 🧀|בננות 🍌
+🕷️|כמה רגליים יש לעכביש?|8 8️⃣|6 6️⃣|4 4️⃣|10 🔟
+🐜|כמה רגליים יש לנמלה?|6 6️⃣|8 8️⃣|4 4️⃣|2 2️⃣
+🏠|איזו חיה סוחבת את הבית שלה על הגב?|צב 🐢|ארנב 🐇|שועל 🦊|סוס 🐎
+🐶|איך קוראים לתינוק של כלב?|גוּר 🐕|אפרוח 🐥|עגל 🐄|טלה 🐑
+🌊|מי בעל החיים הכי גדול בעולם?|לווייתן כחול 🐋|פיל 🐘|ג׳ירפה 🦒|כריש 🦈
+🐟|במה דגים נושמים מתחת למים?|בזימים 🐠|באף 👃|באוזניים 👂|בסנפירים 🌊
+🐻|מה הרבה דובים עושים בחורף?|ישנים שינה ארוכה 😴|שוחים בים 🏊|עפים לארצות חמות ✈️|בונים איש שלג ⛄
+🐧|איזו ציפור לא יכולה לעוף?|פינגווין 🐧|יונה 🕊️|תוכי 🦜|נשר 🦅
+🦓|באילו צבעים הפסים של הזברה?|שחור ולבן ⚫|כתום ושחור 🟠|ורוד וסגול 🟣|כחול וצהוב 🔵
+🐣|מאיפה יוצא האפרוח?|מביצה 🥚|מפרח 🌸|מתוך האדמה 🪨|מענן ☁️
+🐛|למה הזחל הופך כשהוא גדל?|לפרפר 🦋|לדבורה 🐝|לעכביש 🕷️|לנחש 🐍
+🐘|לאיזו חיה יש חֶדֶק ארוך?|פיל 🐘|קרנף 🦏|היפופוטם 🦛|ג׳ירפה 🦒
+👑|איזו חיה קוראים לה ״מלך החיות״?|אריה 🦁|זאב 🐺|קוף 🐒|פיל 🐘
+🍯|מי מכינות לנו דבש?|דבורים 🐝|פרות 🐄|נמלים 🐜|פרפרים 🦋
+🦘|איזו חיה מקפצת וסוחבת את התינוק שלה בכיס?|קנגורו 🦘|קוף 🐒|צפרדע 🐸|ארנב 🐇
+🌙|איזו ציפור ערה בלילה וישנה ביום?|ינשוף 🦉|תרנגול 🐓|ברבור 🦢|יונה 🕊️
+🐔|כמה רגליים יש לתרנגולת?|2 2️⃣|4 4️⃣|6 6️⃣|8 8️⃣
+💨|מי החיה הכי מהירה ביבשה?|ברדלס 🐆|צב 🐢|פרה 🐄|דוב 🐻
+🦎|איזו חיה יכולה לשנות את הצבע שלה?|זיקית 🦎|חתול 🐈|סוס 🐎|ינשוף 🦉
+🐪|מה יש לגמל על הגב?|דבשת 🐪|כנפיים 🪽|קונכייה 🐚|קוצים 🌵
+🐸|איך קוראים לתינוק של צפרדע?|ראשָן 🫧|גוּר 🐕|אפרוח 🐥|גדי 🐐
+🐙|למי יש שמונה זרועות?|תמנון 🐙|סרטן 🦀|דג 🐟|כוכב ים ⭐
+🫏|איזו חיה אומרת ״אִי-אָה״?|חמור 🫏|ברווז 🦆|חתול 🐈|תרנגול 🐓
+🪵|איזו חיה בונה סכר מענפים בנהר?|בונה 🦫|סנאי 🐿️|ארנב 🐇|צב 🐢
+🐑|מה נותנת לנו הכבשה?|צמר 🧶|ביצים 🥚|דבש 🍯|שוקולד 🍫
+🦔|לאיזו חיה יש קוצים על הגב?|קיפוד 🦔|חתול 🐈|אוגר 🐹|ארנב 🐇
+🐻‍❄️|איפה חי דוב הקוטב?|בשלג ובקרח ❄️|במדבר החם 🏜️|בג׳ונגל 🌴|בעיר 🏙️
+🐢|מה עושה צב כשהוא מפחד?|מכניס את הראש לשריון 🐢|עף משם 🪽|צועק חזק 📢|מטפס על עץ 🌳
+🦁|לאיזו חיה יש רעמה גדולה סביב הראש?|אריה 🦁|דוב 🐻|פיל 🐘|נחש 🐍
+🌊|מי מהם בכלל לא דג?|דולפין 🐬|כריש 🦈|דג זהב 🐠|דג חרב 🗡️
+🦇|איזו חיה ישנה כשהיא תלויה הפוך?|עטלף 🦇|ינשוף 🦉|תוכי 🦜|חתול 🐈
+🌰|מי אוסף אגוזים ויש לו זנב פרוותי?|סנאי 🐿️|נחש 🐍|צב 🐢|דג 🐟
+🐌|איזו חיה הכי איטית?|עצלן 🦥|ארנב 🐇|סוס 🐎|ברדלס 🐆
+🦏|לאיזו חיה יש קרן על האף?|קרנף 🦏|זברה 🦓|פיל 🐘|קוף 🐒
+🐮|איך קוראים לתינוק של פרה?|עגל 🐄|גדי 🐐|טלה 🐑|סייח 🐎
+🌅|מי קורא ״קוּקוּרִיקוּ״ בבוקר?|תרנגול 🐓|ברווז 🦆|יונה 🕊️|חתול 🐈
+🐠|במה מכוסה הגוף של דג?|קשקשים 🐟|נוצות 🪶|פרווה 🧸|קוצים 🌵
+🐦|במה מכוסה הגוף של ציפור?|נוצות 🪶|קשקשים 🐟|קוצים 🌵|שריון 🛡️
+🦩|באיזה צבע הפלמינגו?|ורוד 🩷|ירוק 💚|כחול 💙|שחור 🖤
+🐯|לאיזו חיה יש פסים כתומים ושחורים?|נמר 🐅|אריה 🦁|דוב 🐻|קוף 🐒
+🌕|איזו חיה מייללת ״אוּוּוּ״ בלילה?|זאב 🐺|פרה 🐄|דג 🐟|תרנגולת 🐔
+🐍|לאיזו חיה אין רגליים בכלל?|נחש 🐍|חתול 🐈|תרנגולת 🐔|צפרדע 🐸
+🐇|לאיזו חיה יש אוזניים ארוכות והיא אוהבת לקפוץ?|ארנב 🐇|דג 🐟|נחש 🐍|ינשוף 🦉
+🦈|איך קוראים לדג גדול עם המון שיניים חדות?|כריש 🦈|דג זהב 🐠|סוסון ים 🌊|מדוזה 🪼
+🐞|כמה רגליים יש לפרת משה רבנו?|6 6️⃣|4 4️⃣|8 8️⃣|2 2️⃣
+🦜|איזו ציפור יכולה ללמוד לדבר כמו בני אדם?|תוכי 🦜|יונה 🕊️|פינגווין 🐧|ברווז 🦆
+🐐|איך קוראים לתינוק של עז?|גדי 🐐|עגל 🐄|גוּר 🐕|אפרוח 🐥
+🐊|איזו חיה עם שיניים חדות חיה בנהר ונראית כמו לטאה ענקית?|תנין 🐊|היפופוטם 🦛|צב 🐢|צפרדע 🐸
+🌸|מה הדבורים אוספות מהפרחים?|צוף 🌸|חלב 🥛|מיץ תפוזים 🍊|מים מלוחים 🧂
+🐋|איך הלווייתן נושם?|דרך חור בראש 🐋|דרך זימים 🐟|דרך הזנב 🌊|הוא לא נושם ❌
+🐨|מה הקואלה הכי אוהבת לאכול?|עלי אקליפטוס 🌿|בשר 🍖|דגים 🐟|גזרים 🥕
+🐺|איך קוראים לקבוצה של זאבים?|להקה 🐺|כוורת 🐝|שלולית 💧|כיתה 🏫
+`},
+{ id:"food", name:"אוכל", icon:"🍕", runner:"🍔", data:`
+🍌|איזה פרי צהוב וארוך הקופים אוהבים?|בננה 🍌|תפוח 🍎|ענבים 🍇|אבטיח 🍉
+🍉|איזה פרי ירוק מבחוץ ואדום מבפנים, עם גרעינים שחורים?|אבטיח 🍉|בננה 🍌|תפוז 🍊|לימון 🍋
+🍋|איזה פרי הכי חמוץ?|לימון 🍋|בננה 🍌|ענבים 🍇|אבטיח 🍉
+🥛|מאיזו חיה מגיע רוב החלב שאנחנו שותים?|פרה 🐄|חתול 🐈|תרנגולת 🐔|דג 🐟
+🥚|מי מטילה את הביצים שאנחנו אוכלים?|תרנגולת 🐔|פרה 🐄|כבשה 🐑|סוס 🐎
+🍞|ממה מכינים לחם?|קמח 🌾|סוכר 🍬|שוקולד 🍫|אורז 🍚
+🧀|ממה מכינים גבינה?|מחלב 🥛|מתפוחים 🍎|מביצים 🥚|מקמח 🌾
+🍟|ממה מכינים צ׳יפס?|תפוחי אדמה 🥔|גזר 🥕|תפוחים 🍎|בננות 🍌
+🍿|ממה עושים פופקורן?|תירס 🌽|אורז 🍚|אפונה 🫛|ענבים 🍇
+🥕|איזה ירק כתום וארנבים אוהבים?|גזר 🥕|מלפפון 🥒|עגבנייה 🍅|חסה 🥬
+🍕|מאיזו ארץ הגיעה הפיצה?|איטליה 🍝|סין 🥢|יפן 🗾|מקסיקו 🌮
+🍣|מאיזו ארץ הגיע הסושי?|יפן 🗾|איטליה 🍝|מקסיקו 🌮|צרפת 🥐
+🥐|מאיזו ארץ מגיע הקרואסון?|צרפת 🗼|יפן 🗾|סין 🥢|מקסיקו 🌮
+🌮|מאיזו ארץ מגיע הטאקו?|מקסיקו 🌵|צרפת 🗼|איטליה 🍝|יפן 🗾
+🍫|ממה מכינים שוקולד?|מפולי קקאו 🫘|מעגבניות 🍅|מגזר 🥕|מתירס 🌽
+🍅|באיזה צבע עגבנייה בשלה?|אדום 🔴|כחול 🔵|סגול 🟣|שחור ⚫
+🍇|ממה מכינים צימוקים?|מענבים מיובשים 🍇|מתפוחים 🍎|מתותים 🍓|מאגסים 🍐
+🥜|ממה עושים חמאת בוטנים?|מבוטנים 🥜|מחלב 🥛|מתפוחים 🍎|משוקולד 🍫
+🫘|ממה מכינים חומוס?|מגרגרי חומוס 🫘|מעגבניות 🍅|מתפוחים 🍎|מאורז 🍚
+🧆|איזה מאכל הוא כדורים מטוגנים שמכניסים לפיתה?|פלאפל 🧆|פיצה 🍕|גלידה 🍦|סלט 🥗
+🍦|איזה מאכל קר ונמס בשמש?|גלידה 🍦|מרק 🍲|לחם 🍞|תפוח אדמה 🥔
+🍲|מה אוכלים בכף ובדרך כלל אוכלים חם?|מרק 🍲|גלידה 🍦|בננה 🍌|עוגייה 🍪
+🍍|לאיזה פרי יש ״כתר״ של עלים קוצניים למעלה?|אננס 🍍|תות 🍓|ענבים 🍇|בננה 🍌
+🍓|לאיזה פרי יש גרעינים קטנים מבחוץ?|תות 🍓|תפוז 🍊|אבטיח 🍉|בננה 🍌
+🥥|איזה פרי חום וקשה, ויש בתוכו מים?|קוקוס 🥥|אבטיח 🍉|לימון 🍋|ענבים 🍇
+🌽|לאיזה ירק צהוב יש הרבה גרגרים על קלח?|תירס 🌽|גזר 🥕|מלפפון 🥒|חציל 🍆
+🍆|איזה ירק סגול ומבריק?|חציל 🍆|מלפפון 🥒|גזר 🥕|תירס 🌽
+🥒|ממה מכינים מלפפון חמוץ?|ממלפפון 🥒|מבננה 🍌|מגזר 🥕|מתפוח 🍎
+🍚|איזה גרגר לבן קטן גדל בשדות מוצפים במים?|אורז 🍚|שוקולד 🍫|תפוז 🍊|גבינה 🧀
+🧂|מה נותן לאוכל טעם מלוח?|מלח 🧂|סוכר 🍬|דבש 🍯|ריבה 🍓
+🍬|מה נותן לאוכל טעם מתוק?|סוכר 🍬|מלח 🧂|לימון 🍋|פלפל חריף 🌶️
+🌶️|איזה ירק יכול לשרוף בפה?|פלפל חריף 🌶️|מלפפון 🥒|גזר 🥕|חסה 🥬
+🥗|איך קוראים למאכל של ירקות טריים חתוכים בקערה?|סלט 🥗|עוגה 🎂|מרק 🍲|פשטידה 🥧
+🎂|מה אוכלים ביום הולדת עם נרות?|עוגה 🎂|מרק 🍲|סלט 🥗|פלאפל 🧆
+🍩|איזה מאפה מתוק אוכלים בחנוכה?|סופגנייה 🍩|מצה 🫓|חלה 🍞|אוזני המן 🍪
+🫓|מה אוכלים בפסח במקום לחם?|מצה 🫓|פיתה 🥙|חלה 🍞|לחמנייה 🥯
+🍪|איזו עוגייה אוכלים בפורים?|אוזני המן 🍪|סופגנייה 🍩|מצה 🫓|לביבה 🥔
+🍞|איזה לחם קלוע אוכלים בשבת?|חלה 🍞|פיתה 🥙|מצה 🫓|בייגלה 🥨
+🥔|ממה מכינים לביבות לחנוכה?|מתפוחי אדמה 🥔|מבננות 🍌|מתותים 🍓|מאורז 🍚
+🍎|מה טובלים בדבש בראש השנה?|תפוח 🍎|בננה 🍌|מלפפון 🥒|גזר 🥕
+🫒|מה עושים מזיתים?|שמן 🫒|חלב 🥛|מיץ תפוזים 🍊|קמח 🌾
+🥑|איזה פרי ירוק מבפנים ויש לו גלעין גדול?|אבוקדו 🥑|בננה 🍌|תות 🍓|ענבים 🍇
+🦷|מה עוזר לעצמות ולשיניים להיות חזקות?|חלב 🥛|סוכריות 🍬|קולה 🥤|צ׳יפס 🍟
+💧|מה הכי בריא לשתות כשצמאים?|מים 💧|קולה 🥤|מיץ ממותק 🧃|מילקשייק 🍨
+🍊|איזה פרי מקלפים ומחלקים לפלחים?|תפוז 🍊|אבטיח 🍉|ענבים 🍇|תות 🍓
+`},
+{ id:"transport", name:"כלי תחבורה", icon:"🚗", runner:"🚗", data:`
+🚲|כמה גלגלים יש לאופניים רגילים?|2 2️⃣|3 3️⃣|4 4️⃣|1 1️⃣
+✈️|איזה כלי תחבורה טס בשמיים?|מטוס ✈️|רכבת 🚆|ספינה 🚢|אוטובוס 🚌
+🌊|איזה כלי תחבורה שט בים?|ספינה 🚢|מטוס ✈️|משאית 🚚|אופנוע 🏍️
+🛤️|איזה כלי תחבורה נוסע על פסים?|רכבת 🚆|מכונית 🚗|אופניים 🚲|סירה 🛶
+🔥|איזה רכב מגיע לכבות שריפות?|כבאית 🚒|אמבולנס 🚑|מונית 🚕|משאית זבל 🚛
+🏥|איזה רכב לוקח אנשים חולים לבית החולים?|אמבולנס 🚑|כבאית 🚒|טרקטור 🚜|אוטובוס 🚌
+👮|באיזה רכב נוהגים שוטרים?|ניידת משטרה 🚓|כבאית 🚒|אמבולנס 🚑|טרקטור 🚜
+🌾|איזה רכב עובד בשדות בחווה?|טרקטור 🚜|מטוס ✈️|ספינה 🚢|מונית 🚕
+💰|לאיזה רכב משלמים לנהג כדי שייקח אותנו לאן שרוצים?|מונית 🚕|כבאית 🚒|טרקטור 🚜|ניידת משטרה 🚓
+🌌|במה טסים לחלל?|חללית 🚀|מסוק 🚁|כדור פורח 🎈|מטוס רגיל ✈️
+🚁|לאיזה כלי טיס יש מדחף גדול על הגג?|מסוק 🚁|מטוס ✈️|רכבת 🚆|סירה 🛶
+🎈|מה טס בעזרת אוויר חם בתוך בלון ענק?|כדור פורח 🎈|מסוק 🚁|חללית 🚀|מצנח 🪂
+🚦|באיזה צבע ברמזור צריך לעצור?|אדום 🔴|ירוק 🟢|כחול 🔵|סגול 🟣
+🟢|מה אומר האור הירוק ברמזור להולכי רגל?|אפשר לעבור ✅|צריך לעצור ✋|לחכות לאוטובוס 🚌|ללכת הביתה 🏠
+🚸|לאיזו חיה דומה מעבר החצייה?|זברה 🦓|ג׳ירפה 🦒|נמר 🐅|פרה 🐄
+🚴|מה חובה לחבוש על הראש כשרוכבים על אופניים?|קסדה ⛑️|כובע מצחייה 🧢|כתר 👑|משקפי שמש 🕶️
+🚗|מה צריך לחגור כשנוסעים במכונית?|חגורת בטיחות 🔒|צעיף 🧣|עניבה 👔|שעון ⌚
+⛽|מה שמים ברוב המכוניות כדי שייסעו?|דלק ⛽|מיץ 🧃|חול 🏖️|חלב 🥛
+🛞|כמה גלגלים יש למכונית רגילה?|4 4️⃣|2 2️⃣|3 3️⃣|6 6️⃣
+🚇|איך קוראים לרכבת שנוסעת מתחת לאדמה?|רכבת תחתית 🚇|רכבל 🚡|כדור פורח 🎈|ספינה 🚢
+🏔️|איך קוראים לקרון שתלוי על כבל ועולה להר?|רכבל 🚡|מסוק 🚁|אופניים 🚲|רכבת תחתית 🚇
+⚓|מה זורקים מהספינה למים כדי שלא תזוז?|עוגן ⚓|גלגל 🛞|כדור ⚽|מטרייה ☂️
+🛶|במה חותרים בסירה קטנה?|במשוטים 🛶|בגלגלים 🛞|בכנפיים 🪽|במנוע סילון 🚀
+⛵|מה מזיז מפרשית?|הרוח 🌬️|דלק ⛽|חשמל 🔌|סוסים 🐎
+🛫|איך קוראים למקום שממנו המטוסים ממריאים?|שדה תעופה 🛫|נמל 🚢|תחנת רכבת 🚉|חניון 🅿️
+🚢|איך קוראים למקום שבו ספינות עוגנות?|נמל ⚓|שדה תעופה 🛫|תחנת דלק ⛽|גן ילדים 🏫
+🚉|איפה מחכים לרכבת?|בתחנת רכבת 🚉|בשדה תעופה 🛫|בנמל ⚓|בבריכה 🏊
+🚌|איזה רכב גדול מסיע הרבה אנשים ועוצר בתחנות?|אוטובוס 🚌|מונית 🚕|אופנוע 🏍️|קורקינט 🛴
+🛴|לאיזה כלי יש קרש לעמוד עליו, כידון ושני גלגלים קטנים?|קורקינט 🛴|אופניים 🚲|רכבת 🚆|סירה 🛶
+🏍️|איזה כלי עם שני גלגלים יש לו מנוע חזק?|אופנוע 🏍️|אופניים 🚲|סקייטבורד 🛹|רכבת 🚆
+📦|איזה רכב גדול מוביל סחורה לחנויות?|משאית 🚚|מונית 🚕|אופניים 🚲|קורקינט 🛴
+🗑️|איזה רכב אוסף את הזבל מהפחים?|משאית זבל 🚛|אמבולנס 🚑|מונית 🚕|כבאית 🚒
+🏗️|איזה רכב חופר בורות באתר בנייה?|מחפר (באגר) 🚧|אמבולנס 🚑|מונית 🚕|אוטובוס 🚌
+🚂|מה יצא מהארובה של הקטר הישן?|עשן 💨|מים 💧|פרחים 🌸|ממתקים 🍬
+🧑‍✈️|מי מטיס את המטוס?|טייס 🧑‍✈️|נהג 🚗|מלח ⚓|רוכב 🚴
+🏜️|על איזו חיה רוכבים במדבר כמו על כלי תחבורה?|גמל 🐪|פינגווין 🐧|דולפין 🐬|ינשוף 🦉
+🎠|איזו חיה סוחבת כרכרה?|סוס 🐎|חתול 🐈|תרנגולת 🐔|דג 🐟
+🤿|איזה כלי שט מתחת למים?|צוללת 🌊|רכבת 🚆|מסוק 🚁|אוטובוס 🚌
+`},
+{ id:"body", name:"הגוף שלנו", icon:"🖐️", runner:"🏃", data:`
+👁️|במה אנחנו רואים?|בעיניים 👀|באוזניים 👂|באף 👃|ברגליים 🦶
+🔊|במה אנחנו שומעים?|באוזניים 👂|בעיניים 👀|בידיים ✋|בברכיים 🦵
+🌸|במה אנחנו מריחים?|באף 👃|בעיניים 👀|באוזניים 👂|במרפק 💪
+🍭|במה אנחנו טועמים?|בלשון 👅|באוזן 👂|בשיער 💇|ברגל 🦶
+✋|כמה אצבעות יש בכף יד אחת?|5 5️⃣|4 4️⃣|6 6️⃣|10 🔟
+🦶|כמה אצבעות יש בשתי הרגליים ביחד?|10 🔟|5 5️⃣|8 8️⃣|20 🔢
+❤️|איזה איבר דופק ושולח דם לכל הגוף?|הלב ❤️|האוזן 👂|האף 👃|השיער 💇
+🫁|באיזה איבר אנחנו נושמים אוויר?|בריאות 🫁|בקיבה 🍽️|בעיניים 👀|בברכיים 🦵
+🤔|איזה איבר בראש עוזר לנו לחשוב?|המוח 🧠|הלב ❤️|הבטן 🍽️|האף 👃
+🪥|מה מצחצחים פעמיים ביום?|שיניים 🦷|נעליים 👟|אוזניים 👂|ברכיים 🦵
+🦴|מה מחזיק את הגוף שלנו זקוף מבפנים?|העצמות 🦴|השיער 💇|הציפורניים 💅|הריסים 👁️
+🧼|מה חשוב לעשות לפני האוכל?|לשטוף ידיים 🧼|לישון 😴|לרוץ 🏃|לצייר 🎨
+💪|מה עוזר לנו להרים דברים כבדים?|השרירים 💪|השיער 💇|הציפורניים 💅|הגבות 🤨
+🦷|מה קורה לשיניים של ילדים בסביבות גיל 6?|שיני החלב נופלות 🦷|הן הופכות לכחולות 💙|הן נעלמות לגמרי ✨|הן מתחילות לדבר 🗣️
+😴|מה הגוף צריך כל לילה כדי לגדול ולהיות חזק?|שינה 😴|טלוויזיה 📺|ממתקים 🍬|צעקות 📢
+🩸|באיזה צבע הדם שלנו?|אדום 🔴|כחול 🔵|ירוק 🟢|צהוב 🟡
+🦵|איך קוראים למפרק באמצע הרגל?|ברך 🦵|מרפק 💪|כתף 🤷|סנטר 🧔
+🦾|איך קוראים למפרק באמצע היד?|מרפק 💪|ברך 🦵|קרסול 🦶|צוואר 🧣
+🤧|במה נכון לכסות את הפה כשמתעטשים?|במרפק 💪|בכובע 🧢|בנעל 👟|בכלום ❌
+🫀|כמה לבבות יש לאדם?|1 1️⃣|2 2️⃣|3 3️⃣|4 4️⃣
+👀|כמה עיניים יש לנו?|2 2️⃣|1 1️⃣|3 3️⃣|4 4️⃣
+🥵|מה יוצא מהעור כשחם לנו או כשרצים הרבה?|זיעה 💧|שוקו 🍫|חול 🏖️|נוצות 🪶
+☀️|מה מורחים על העור כדי להגן מהשמש?|קרם הגנה 🧴|ריבה 🍓|חמאה 🧈|דבק 🖍️
+🍽️|לאן הולך האוכל אחרי שבולעים אותו?|לקיבה 🍽️|לראש 🧠|לאוזן 👂|לרגל 🦶
+😉|איך קוראים לשערות הקטנות על העפעף?|ריסים 👁️|שפם 👨|זקן 🧔|קוקו 💇
+✂️|מה גדל בקצות האצבעות וצריך לגזור?|ציפורניים 💅|שיניים 🦷|אוזניים 👂|עצמות 🦴
+🧍|על מה אנחנו עומדים?|על כפות הרגליים 🦶|על הידיים ✋|על הראש 🙃|על האוזניים 👂
+🏃|מה טוב לגוף ולשרירים?|לרוץ ולשחק בחוץ 🏃|לשבת כל היום מול מסך 📺|לאכול רק ממתקים 🍬|לא לישון בכלל 🥱
+🤒|במה מודדים חום כשמרגישים חולים?|מדחום 🌡️|סרגל 📏|שעון ⏰|משקל ⚖️
+😬|לאיזה רופא הולכים כשכואבת השן?|רופא שיניים 🦷|וטרינר 🐶|רופא עיניים 👓|ספר 💈
+👃|כמה נחיריים יש באף?|2 2️⃣|1 1️⃣|3 3️⃣|4 4️⃣
+😁|כמה שיני חלב יש לילדים קטנים?|20 🦷|10 🦷|50 🦷|5 🦷
+👓|מה עוזר לאנשים שלא רואים טוב?|משקפיים 👓|כפפות 🧤|גרביים 🧦|כובע 🎩
+`},
+{ id:"nature", name:"טבע ומזג אוויר", icon:"🌦️", runner:"🌞", data:`
+🌈|מתי רואים קשת בענן?|כשיש שמש וגשם ביחד 🌦️|רק בלילה 🌙|כשיורד שלג ❄️|כשיש סופת חול 🏜️
+🌧️|מה יורד מהעננים כשיורד גשם?|טיפות מים 💧|חול 🏖️|סוכריות 🍬|עלים 🍂
+🥶|מה יורד מהשמיים כשקר מאוד?|שלג ❄️|חול 🏖️|פרחים 🌸|ממתקים 🍬
+🌤️|מה מאיר ומחמם אותנו ביום?|השמש ☀️|הירח 🌙|הכוכבים ⭐|פנס 🔦
+⛈️|מה קורה קודם בסערה?|רואים ברק ואז שומעים רעם ⚡|שומעים רעם ואז רואים ברק 🔊|רק יורד שלג ❄️|יוצאת קשת 🌈
+🍁|באיזו עונה העלים נושרים מהעצים?|סתיו 🍂|קיץ ☀️|אביב 🌸|חורף ❄️
+🌷|באיזו עונה הכי הרבה פרחים פורחים?|אביב 🌸|סתיו 🍂|חורף ❄️|קיץ ☀️
+🏖️|באיזו עונה הכי חם והולכים לים?|קיץ ☀️|חורף ❄️|סתיו 🍂|אביב 🌸
+☔|באיזו עונה יורד הכי הרבה גשם בישראל?|חורף 🌧️|קיץ ☀️|אביב 🌸|סתיו 🍂
+📅|כמה עונות יש בשנה?|4 4️⃣|2 2️⃣|3 3️⃣|12 🗓️
+🌳|מה עצים צריכים כדי לגדול?|מים, שמש ואדמה 🌱|ממתקים 🍬|טלוויזיה 📺|נעליים 👟
+🌰|מה צומח מזרע?|צמח 🌱|אבן 🪨|ציפור 🐦|ענן ☁️
+🌊|איזה טעם יש למי הים?|מלוח 🧂|מתוק 🍬|חמוץ 🍋|כמו שוקולד 🍫
+🌋|מאיזה הר יכולה לצאת לבה רותחת?|הר געש 🌋|הר מושלג 🏔️|גבעה 🌄|דיונה 🏜️
+🐪|איך קוראים למקום חם עם הרבה חול וכמעט בלי גשם?|מדבר 🏜️|יער 🌲|קוטב ❄️|אגם 🏞️
+🌲|איך קוראים למקום עם המון עצים?|יער 🌲|מדבר 🏜️|ים 🌊|חוף 🏖️
+🧊|מה קורה למים כשהם קרים מאוד מאוד?|הופכים לקרח 🧊|הופכים לאש 🔥|הופכים לחול 🏖️|נעלמים ✨
+🫖|מה יוצא מקומקום כשהמים רותחים?|אדים ♨️|קרח 🧊|חלב 🥛|אבנים 🪨
+🌃|מה רואים בשמיים בלילה בהיר?|ירח וכוכבים 🌙|קשת בענן 🌈|שמש בוהקת ☀️|ענני ממתקים 🍭
+🌬️|איך קוראים לאוויר שזז מהר?|רוח 🌬️|גשם 🌧️|שלג ❄️|ערפל 🌫️
+🌫️|איך קוראים לענן נמוך שקשה לראות דרכו?|ערפל 🌫️|ברק ⚡|קשת 🌈|שלג ❄️
+🎨|כמה צבעים יש בקשת בענן?|7 7️⃣|3 3️⃣|5 5️⃣|10 🔟
+🌻|לאיזה כיוון פונה חמנייה צעירה?|אל השמש ☀️|אל הירח 🌙|אל האדמה ⬇️|אל הים 🌊
+🌼|מי עוזרות לפרחים להפוך לפירות?|דבורים 🐝|נחשים 🐍|דגים 🐟|עכברים 🐭
+🏜️|איזה צמח גדל במדבר ויש לו קוצים?|קקטוס 🌵|ורד 🌹|חמנייה 🌻|תות 🍓
+🌲|מה צומח ביער אחרי גשם ויש לו כובע?|פטרייה 🍄|דקל 🌴|קקטוס 🌵|תפוז 🍊
+🏝️|מה אפשר למצוא על חוף הים?|צדפים 🐚|שלג ❄️|דובי קוטב 🐻‍❄️|פטריות 🍄
+🏔️|איפה יש שלג גם בקיץ?|על פסגות של הרים גבוהים מאוד 🏔️|על חוף הים 🏖️|במדבר 🏜️|בגינה 🌷
+🌍|מה מכסה את רוב כדור הארץ?|מים 🌊|חול 🏜️|יערות 🌲|כבישים 🛣️
+🌇|לאיזה כיוון השמש שוקעת?|מערב 🌇|מזרח 🌅|צפון ⬆️|דרום ⬇️
+🌅|מאיזה כיוון השמש זורחת?|מזרח 🌅|מערב 🌇|צפון ⬆️|דרום ⬇️
+⚡|מה עושים כשיש סערה עם ברקים?|נכנסים הביתה 🏠|עולים על עץ גבוה 🌳|שוחים בים 🏊|מעיפים עפיפון 🪁
+☁️|ממה עשויים העננים?|מטיפות מים קטנטנות 💧|מצמר גפן 🧶|מעשן של מכוניות 🚗|מסוכר 🍬
+`},
+{ id:"jobs", name:"מקצועות", icon:"🧑‍🚒", runner:"🧑‍🚒", data:`
+🔥|מי מכבה שריפות?|כבאי 🧑‍🚒|רופא 🧑‍⚕️|טבח 🧑‍🍳|צייר 🧑‍🎨
+🤒|מי בודק אותנו כשאנחנו חולים?|רופא 🧑‍⚕️|טייס 🧑‍✈️|כבאי 🧑‍🚒|אופה 🥖
+🐶|איך קוראים לרופא של בעלי חיים?|וטרינר 🐾|רופא שיניים 🦷|אופה 🥖|ספר 💈
+🍞|מי אופה לחם ועוגות?|אופה 🥖|שוטר 👮|טייס 🧑‍✈️|דוור 📬
+✉️|מי מביא לנו מכתבים וחבילות?|דוור 📬|כבאי 🧑‍🚒|גנן 🌷|טבח 🧑‍🍳
+🚨|מי שומר על החוק ועל הסדר ברחוב?|שוטר 👮|אופה 🥖|צייר 🧑‍🎨|ספר 💈
+✂️|מי גוזר לנו את השיער במספרה?|ספר 💈|טבח 🧑‍🍳|נהג 🚌|רופא 🧑‍⚕️
+🍳|מי מבשל במסעדה?|טבח 🧑‍🍳|טייס 🧑‍✈️|דוור 📬|שוטר 👮
+🌷|מי מטפל בצמחים ובפרחים בגינה?|גנן 🧑‍🌾|כבאי 🧑‍🚒|ספר 💈|נהג 🚌
+🏫|מי מלמדת ילדים בבית הספר?|מורה 🧑‍🏫|טבחית 🧑‍🍳|טייסת 🧑‍✈️|דוורית 📬
+🧸|מי מטפלת בילדים בגן?|גננת 🧸|טייסת 🧑‍✈️|ספרית 💈|אופה 🥖
+✈️|מי מטיס מטוס?|טייס 🧑‍✈️|נהג 🚌|מלח ⚓|רוכב 🏇
+🚀|איך קוראים למי שטס לחלל?|אסטרונאוט 🧑‍🚀|כבאי 🧑‍🚒|מלצר 🍽️|קוסם 🪄
+🏗️|מי בונה בתים?|פועל בניין 👷|רופא 🧑‍⚕️|מורה 🧑‍🏫|ספר 💈
+🪵|מי עושה רהיטים מעץ?|נגר 🪚|אופה 🥖|דוור 📬|צלם 📷
+🚿|מי מתקן ברזים שמטפטפים?|שרברב 🔧|צייר 🧑‍🎨|מורה 🧑‍🏫|טייס 🧑‍✈️
+🖼️|מי מצייר תמונות?|צייר 🧑‍🎨|נגר 🪚|דוור 📬|שוטר 👮
+📸|מי מצלם תמונות בחתונות?|צלם 📷|אופה 🥖|גנן 🌷|כבאי 🧑‍🚒
+🍽️|מי מביא את האוכל לשולחן במסעדה?|מלצר 🍽️|כבאי 🧑‍🚒|נגר 🪚|גנן 🌷
+🐄|מי מגדל פרות ותרנגולות בחווה?|חקלאי 🧑‍🌾|טייס 🧑‍✈️|ספר 💈|צלם 📷
+📚|מי עובד בספרייה ועוזר למצוא ספרים?|ספרן 📚|כבאי 🧑‍🚒|אופה 🥖|שרברב 🔧
+🦷|מי בודק לנו את השיניים?|רופא שיניים 🦷|וטרינר 🐾|גנן 🌷|נגר 🪚
+💊|מי נותן תרופות בבית מרקחת?|רוקח 💊|טבח 🧑‍🍳|טייס 🧑‍✈️|ספר 💈
+🎭|מי משחק בהצגות בתיאטרון?|שחקן 🎭|נהג 🚌|רוקח 💊|דוור 📬
+🎤|מי שר על במה?|זמר 🎤|נגר 🪚|רופא 🧑‍⚕️|גנן 🌷
+🎪|מי מצחיק אנשים בקרקס עם אף אדום?|ליצן 🤡|שוטר 👮|רוקח 💊|טבח 🧑‍🍳
+🎩|מי מוציא ארנב מכובע?|קוסם 🪄|רופא 🧑‍⚕️|אופה 🥖|נהג 🚌
+⛵|מי עובד על ספינה בים?|מלח ⚓|כבאי 🧑‍🚒|גנן 🌷|ספרן 📚
+🚏|מי נוהג באוטובוס?|נהג 🚌|טייס 🧑‍✈️|מלח ⚓|רוקח 💊
+🏥|מי עוזרת לרופא ומטפלת בחולים בבית החולים?|אחות 🩹|גננת 🧸|ספרנית 📚|צלמת 📷
+🧑‍🚒|במה הכבאי מכבה את האש?|במים 💧|במיץ תפוזים 🍊|בשוקו 🍫|בדבש 🍯
+🩺|מה הרופא שם על האוזניים כדי לשמוע את הלב?|סטטוסקופ 🩺|מדחום 🌡️|משקפיים 👓|אוזניות 🎧
+⚽|מי משחק כדורגל בקבוצה?|שחקן כדורגל ⚽|טבח 🧑‍🍳|רוקח 💊|ספרן 📚
+`},
+{ id:"space", name:"חלל", icon:"🚀", runner:"🚀", data:`
+☀️|מה הכוכב הכי קרוב אלינו?|השמש ☀️|הירח 🌙|מאדים 🔴|צדק 🟠
+🏡|על איזה כוכב לכת אנחנו גרים?|כדור הארץ 🌍|מאדים 🔴|הירח 🌙|השמש ☀️
+🔄|מה מסתובב סביב כדור הארץ?|הירח 🌙|השמש ☀️|מאדים 🔴|שבתאי 🪐
+💍|לאיזה כוכב לכת יש טבעות גדולות ויפות?|שבתאי 🪐|כדור הארץ 🌍|מאדים 🔴|נוגה ✨
+🔴|איזה כוכב לכת נקרא ״הכוכב האדום״?|מאדים 🔴|שבתאי 🪐|כדור הארץ 🌍|נפטון 🔵
+🟠|מה כוכב הלכת הכי גדול?|צדק 🟠|כדור הארץ 🌍|מאדים 🔴|כוכב חמה ⚪
+🔭|כמה כוכבי לכת יש במערכת השמש?|8 8️⃣|3 3️⃣|5 5️⃣|20 🔢
+🧑‍🚀|מה לובש אסטרונאוט בחלל?|חליפת חלל 🧑‍🚀|בגד ים 🩱|פיג׳מה 🛌|תחפושת ליצן 🤡
+🌕|איך קוראים לירח כשהוא עיגול שלם ומאיר?|ירח מלא 🌕|ירח חדש 🌑|חצי ירח 🌓|ירח מרובע 🟨
+⭐|מה הם הכוכבים שאנחנו רואים בלילה?|שמשות רחוקות מאוד ☀️|מנורות קטנות 💡|גחליליות 🪲|נצנצים מודבקים ✨
+🚀|מה עוזר לחללית לעוף לחלל?|מנוע רקטה חזק 🔥|כנפיים של ציפור 🪽|דוושות 🚲|מפרש ⛵
+🌌|איך קוראים לקבוצה ענקית של מיליארדי כוכבים?|גלקסיה 🌌|ענן ☁️|כוורת 🐝|קבוצת כדורגל ⚽
+☄️|איך קוראים לגוף מקרח ואבק שעף בחלל ויש לו זנב?|שביט ☄️|ציפור 🐦|מטוס ✈️|בלון 🎈
+🛰️|מה מסתובב סביב כדור הארץ ושולח לנו תמונות ושידורים?|לוויין 🛰️|ציפור 🐦|כדור פורח 🎈|עפיפון 🪁
+🌍|מה הצורה של כדור הארץ?|עגול כמו כדור ⚪|שטוח כמו פיתה 🫓|מרובע כמו קופסה 📦|משולש 🔺
+📆|כמה זמן לוקח לכדור הארץ להקיף את השמש?|שנה אחת 📅|יום אחד ☀️|שבוע 🗓️|שעה ⏰
+🌗|למה יש יום ולילה?|כי כדור הארץ מסתובב 🌍|כי השמש נכבית 💡|כי הירח מכסה את השמש 🌙|בגלל העננים 🌥️
+🎈|למה אסטרונאוטים מרחפים בתחנת החלל?|כי שם כמעט לא מרגישים משקל 🪶|כי יש להם כנפיים 🪽|כי הם קופצים חזק 🦘|כי הם מחזיקים בלונים 🎈
+🔭|במה מסתכלים על כוכבים רחוקים?|טלסקופ 🔭|מיקרוסקופ 🔬|משקפת שחייה 🥽|מראה 🪞
+🌝|מה יש על הירח?|מכתשים ואבק אפור 🌕|ים כחול 🌊|יערות 🌲|גבינה 🧀
+💨|האם יש אוויר לנשימה בחלל?|לא, אין אוויר 🚫|כן, המון 🌬️|רק בימי שני 📅|רק בלילה 🌙
+🔥|מה זו השמש?|כדור ענק של גז לוהט 🔥|מנורה גדולה 💡|כוכב לכת 🪐|ירח צהוב 🌙
+🏠|איך קוראים לבית שבו אסטרונאוטים גרים בחלל?|תחנת חלל 🛰️|מגדל 🗼|אוהל ⛺|צוללת 🌊
+🌑|באיזה צבע השמיים בחלל?|שחור ⚫|ורוד 🩷|ירוק 🟢|צהוב 🟡
+🐕|איזו חיה הייתה מהראשונות שטסו לחלל?|כלבה 🐕|ג׳ירפה 🦒|פיל 🐘|פינגווין 🐧
+🥵|איזה כוכב לכת הכי קרוב לשמש?|כוכב חמה ⚪|נפטון 🔵|כדור הארץ 🌍|שבתאי 🪐
+📷|איך נראה כדור הארץ מהחלל?|כחול, ירוק ולבן 🌍|סגול לגמרי 🟣|כתום לגמרי 🟠|שחור לגמרי ⚫
+😎|מה אסור לעשות עם השמש?|להסתכל ישר עליה 👀|לשחק בחוץ ביום 🏃|לחבוש כובע בשמש 🧢|להתחמם קצת בבוקר 🌅
+👣|איפה השאירו אסטרונאוטים טביעות רגליים?|על הירח 🌕|על השמש ☀️|על שבתאי 🪐|על כוכב שביט ☄️
+`},
+{ id:"shapes", name:"צבעים, צורות ומספרים", icon:"🔺", runner:"⭐", data:`
+🔺|כמה צלעות יש למשולש?|3 3️⃣|4 4️⃣|5 5️⃣|6 6️⃣
+🟥|כמה פינות יש לריבוע?|4 4️⃣|3 3️⃣|5 5️⃣|0 0️⃣
+⚽|איזו צורה יש לכדור?|עיגול ⚪|ריבוע 🟥|משולש 🔺|כוכב ⭐
+🎨|איזה צבע יוצא מערבוב כחול וצהוב?|ירוק 🟢|סגול 🟣|כתום 🟠|ורוד 🩷
+🖌️|איזה צבע יוצא מערבוב אדום וצהוב?|כתום 🟠|ירוק 🟢|סגול 🟣|כחול 🔵
+🍇|איזה צבע יוצא מערבוב אדום וכחול?|סגול 🟣|ירוק 🟢|כתום 🟠|צהוב 🟡
+🐘|איזה צבע יוצא מערבוב שחור ולבן?|אפור 🩶|ורוד 🩷|ירוק 🟢|חום 🟤
+🌸|איזה צבע יוצא מערבוב אדום ולבן?|ורוד 🩷|אפור 🩶|ירוק 🟢|כחול 🔵
+☀️|באיזה צבע השמיים ביום בהיר?|כחול 🔵|ירוק 🟢|אדום 🔴|סגול 🟣
+🌿|באיזה צבע הדשא?|ירוק 🟢|כחול 🔵|כתום 🟠|ורוד 🩷
+⛄|באיזה צבע השלג?|לבן ⚪|שחור ⚫|אדום 🔴|ירוק 🟢
+⭐|כמה קצוות יש לכוכב הזה ⭐?|5 5️⃣|3 3️⃣|8 8️⃣|10 🔟
+✡️|כמה קצוות יש למגן דוד?|6 6️⃣|5 5️⃣|4 4️⃣|8 8️⃣
+➕|כמה זה 2 ועוד 2?|4 4️⃣|3 3️⃣|5 5️⃣|22 🔢
+➕|כמה זה 3 ועוד 4?|7 7️⃣|6 6️⃣|8 8️⃣|5 5️⃣
+➕|כמה זה 5 ועוד 5?|10 🔟|55 🔢|9 9️⃣|11 🔢
+➖|כמה זה 10 פחות 3?|7 7️⃣|6 6️⃣|8 8️⃣|13 🔢
+➖|כמה זה 6 פחות 6?|0 0️⃣|6 6️⃣|1 1️⃣|12 🔢
+🍎|היו לי 3 תפוחים ואכלתי אחד. כמה נשארו?|2 2️⃣|3 3️⃣|1 1️⃣|4 4️⃣
+🖐️|כמה אצבעות יש בשתי ידיים?|10 🔟|5 5️⃣|8 8️⃣|12 🔢
+📅|כמה ימים יש בשבוע?|7 7️⃣|5 5️⃣|10 🔟|30 🔢
+🗓️|כמה חודשים יש בשנה?|12 🗓️|7 7️⃣|10 🔟|20 🔢
+⏰|כמה שעות יש ביממה?|24 ⏰|12 🕛|10 🔟|60 🔢
+9️⃣|איזה מספר בא אחרי 9?|10 🔟|8 8️⃣|11 🔢|7 7️⃣
+💯|איזה מספר הכי גדול?|100 💯|10 🔟|50 🔢|9 9️⃣
+🐙|כמה זה 8 ועוד 2?|10 🔟|9 9️⃣|6 6️⃣|82 🔢
+🔵|לאיזו צורה אין בכלל פינות?|עיגול ⚪|ריבוע 🟥|משולש 🔺|מלבן 🚪
+🎲|כמה נקודות יש בצד הכי גבוה של קוביית משחק?|6 6️⃣|5 5️⃣|10 🔟|3 3️⃣
+🌈|איזה צבע לא נמצא בקשת בענן?|חום 🟤|אדום 🔴|ירוק 🟢|כחול 🔵
+🔟|כמה זה 10 ועוד 10?|20 🔢|10 🔟|30 🔢|100 💯
+➕|כמה זה 1 ועוד 1?|2 2️⃣|11 🔢|1 1️⃣|3 3️⃣
+🛑|כמה צלעות יש לשלט ״עצור״?|8 8️⃣|3 3️⃣|4 4️⃣|0 0️⃣
+🦆|יש 4 ברווזים בבריכה ובאו עוד 2. כמה ברווזים יש עכשיו?|6 6️⃣|5 5️⃣|7 7️⃣|2 2️⃣
+🍪|היו 5 עוגיות. אכלנו 2. כמה נשארו?|3 3️⃣|2 2️⃣|7 7️⃣|4 4️⃣
+`}
+];
+
+// parse the question lines
+TOPICS.forEach(t => {
+  t.qs = t.data.trim().split("\n").map(line => {
+    const p = line.split("|").map(s => s.trim());
+    const ans = p.slice(2).map(s => { const k = s.lastIndexOf(" "); return { t: s.slice(0, k), e: s.slice(k + 1) }; });
+    return { e: p[0], q: p[1], a: ans, topic: t };
+  });
+});
+const ALL = { id:"all", name:"הכל מעורבב", icon:"🎲", runner:"🐆", qs: TOPICS.flatMap(t => t.qs) };
+
+const card = document.getElementById("card");
+const scoreEl = document.getElementById("score");
+const fill = document.getElementById("fill");
+const runner = document.getElementById("runner");
+
+let score = 0, right = 0, wrong = 0, deck = [], current = null, topic = null;
+
+function shuffle(arr) { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function nextFromDeck() { if (!deck.length) deck = shuffle(topic.qs); return deck.pop(); }
+
+/* --- sound (starts only after a tap) --- */
+let ctx = null;
+function tone(freqs, dur = .12, type = "triangle") {
+  try {
+    ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+    freqs.forEach((f, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type; o.frequency.value = f;
+      const t = ctx.currentTime + i * dur;
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.25, t + .02); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+      o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + dur + .02);
+    });
+  } catch (e) {}
+}
+
+/* --- read aloud --- */
+function speak(text) {
+  try {
+    if (!("speechSynthesis" in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "he-IL"; u.rate = .9;
+    const v = speechSynthesis.getVoices().find(v => v.lang && v.lang.toLowerCase().startsWith("he"));
+    if (v) u.voice = v;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+function hush() { try { speechSynthesis.cancel(); } catch (e) {} }
+
+function updateScore(bump) {
+  scoreEl.innerHTML = `${score} <small>נק׳</small>`;
+  const pct = Math.min(score, GOAL) / GOAL * 100;
+  fill.style.width = pct + "%";
+  runner.style.right = `calc(${pct}% - ${pct * .38}px)`;
+  if (bump) { scoreEl.classList.remove("bump"); void scoreEl.offsetWidth; scoreEl.classList.add("bump"); setTimeout(() => scoreEl.classList.remove("bump"), 220); }
+}
+
+function showMenu() {
+  hush();
+  score = 0; right = 0; wrong = 0; topic = null;
+  runner.textContent = "🐆";
+  updateScore(false);
+  card.className = "card";
+  card.innerHTML = `
+    <h2 class="pick-title">על מה נשחק היום?</h2>
+    <p class="pick-sub">בחרו נושא ותתחילו לצבור נקודות</p>
+    <div class="topics">
+      ${TOPICS.map(t => `<button class="topic" type="button" id="topic-${t.id}" data-id="${t.id}"><span class="ti" aria-hidden="true">${t.icon}</span><span class="tn">${t.name}</span><span class="tc">${t.qs.length} שאלות</span></button>`).join("")}
+      <button class="topic all" type="button" id="topic-all" data-id="all"><span class="ti" aria-hidden="true">${ALL.icon}</span><span><span class="tn">${ALL.name}</span><br><span class="tc">${ALL.qs.length} שאלות מכל הנושאים</span></span></button>
+    </div>`;
+  card.querySelectorAll(".topic").forEach(b => b.onclick = () => startTopic(b.dataset.id));
+}
+
+function startTopic(id) {
+  topic = id === "all" ? ALL : TOPICS.find(t => t.id === id);
+  score = 0; right = 0; wrong = 0; deck = shuffle(topic.qs);
+  runner.textContent = topic.runner;
+  updateScore(false);
+  tone([440, 554], .1);
+  showQuestion();
+}
+
+function showQuestion() {
+  current = nextFromDeck();
+  const opts = shuffle(current.a.map((x, i) => ({ t: x.t, e: x.e, ok: i === 0 })));
+  const tag = topic.id === "all" ? `${current.topic.icon} ${current.topic.name}` : `${topic.icon} ${topic.name}`;
+  card.className = "card";
+  card.innerHTML = `
+    <div class="q-top">
+      <span><span class="topic-tag">${tag}</span> · שאלה ${right + wrong + 1}</span>
+      <span class="q-tools">
+        <button class="chip" id="speak" type="button">🔊 תקריאו לי</button>
+        <button class="chip" id="menu" type="button">🔙 נושא אחר</button>
+      </span>
+    </div>
+    <div class="big-emoji" aria-hidden="true">${current.e}</div>
+    <h2 class="question">${current.q}</h2>
+    <div class="answers">${opts.map((o, i) => `<button class="ans" type="button" id="ans${i}" data-i="${i}"><span class="e" aria-hidden="true">${o.e}</span><span class="t">${o.t}</span></button>`).join("")}</div>
+    <div id="fb"></div>`;
+  document.getElementById("speak").onclick = () => speak(current.q + " " + opts.map(o => o.t).join(", או "));
+  document.getElementById("menu").onclick = showMenu;
+  card.querySelectorAll(".ans").forEach(btn => btn.onclick = () => answer(opts, +btn.dataset.i));
+}
+
+function answer(opts, i) {
+  const btns = card.querySelectorAll(".ans");
+  btns.forEach(b => b.disabled = true);
+  const okIdx = opts.findIndex(o => o.ok);
+  const fb = document.getElementById("fb");
+  if (opts[i].ok) {
+    right++; score += STEP;
+    btns[i].classList.add("right");
+    btns.forEach((b, k) => { if (k !== i) b.classList.add("dim"); });
+    tone([523, 659, 784]);
+    const cheers = ["כל הכבוד!", "מעולה!", "יופי של תשובה!", "אלוף!", "וואו, נכון!", "מדהים!", "בול!"];
+    fb.innerHTML = `<div class="feedback good"><span class="pts">+5 ⭐</span><span>${cheers[Math.floor(Math.random() * cheers.length)]}</span><button class="btn" id="next" type="button">${score >= GOAL ? "לגביע! 🏆" : "לשאלה הבאה ←"}</button></div>`;
+  } else {
+    wrong++; score = Math.max(0, score - STEP);
+    btns[i].classList.add("wrong");
+    btns[okIdx].classList.add("right");
+    btns.forEach((b, k) => { if (k !== i && k !== okIdx) b.classList.add("dim"); });
+    tone([330, 247], .18, "sine");
+    fb.innerHTML = `<div class="feedback bad"><span class="pts">‎-5</span><span>אופס! התשובה הנכונה: ${opts[okIdx].e} ${opts[okIdx].t}</span><button class="btn" id="next" type="button">לשאלה הבאה ←</button></div>`;
+  }
+  updateScore(true);
+  const next = document.getElementById("next");
+  next.focus({ preventScroll: true });
+  next.onclick = () => { hush(); score >= GOAL ? showWin() : showQuestion(); };
+}
+
+function showWin() {
+  card.className = "card win";
+  card.innerHTML = `
+    <div class="trophy" aria-hidden="true">🏆</div>
+    <h2>ניצחת! 100 נקודות!</h2>
+    <p>אתה אלוף ב${topic.id === "all" ? "כל הנושאים" : topic.name} ${topic.icon}</p>
+    <div class="stats">
+      <div class="stat"><b>${right}</b>תשובות נכונות</div>
+      <div class="stat"><b>${wrong}</b>טעויות</div>
+    </div>
+    <div class="win-btns">
+      <button class="btn" id="again" type="button">עוד פעם 🔄</button>
+      <button class="btn alt" id="other" type="button">נושא אחר 🎯</button>
+    </div>`;
+  tone([523, 659, 784, 1047, 784, 1047], .14);
+  confetti();
+  document.getElementById("again").onclick = () => startTopic(topic.id);
+  document.getElementById("other").onclick = showMenu;
+}
+
+/* --- confetti --- */
+function confetti() {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cv = document.getElementById("confetti"), c = cv.getContext("2d");
+  cv.width = innerWidth; cv.height = innerHeight;
+  const colors = ["#FFC93C", "#149463", "#E2502F", "#3A86FF", "#FF7AB6"];
+  const bits = Array.from({ length: 160 }, () => ({ x: Math.random() * cv.width, y: -20 - Math.random() * cv.height, r: 5 + Math.random() * 6, vy: 2 + Math.random() * 3, vx: -1 + Math.random() * 2, a: Math.random() * 6, c: colors[Math.floor(Math.random() * colors.length)] }));
+  let frames = 0;
+  (function loop() {
+    c.clearRect(0, 0, cv.width, cv.height);
+    bits.forEach(b => { b.y += b.vy; b.x += b.vx; b.a += .1; c.fillStyle = b.c; c.save(); c.translate(b.x, b.y); c.rotate(b.a); c.fillRect(-b.r / 2, -b.r / 2, b.r, b.r * .6); c.restore(); });
+    if (++frames < 260) requestAnimationFrame(loop); else c.clearRect(0, 0, cv.width, cv.height);
+  })();
+}
+
+showMenu();
+</script>
