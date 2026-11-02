@@ -87,6 +87,11 @@ h1 { font-family: var(--display); font-weight: 400; font-size: clamp(26px, 6vw, 
   border: 2px solid var(--jungle); border-radius: 999px; padding: 6px 12px; cursor: pointer;
 }
 .topic-tag { font-weight: 700; color: var(--jungle); }
+.timer {
+  font-weight: 700; font-size: 16px; color: var(--jungle); background: #FFF1C2; border: 2px solid var(--jungle);
+  border-radius: 999px; padding: 3px 12px; font-variant-numeric: tabular-nums; min-width: 64px; text-align: center;
+}
+.timer.stopped { background: var(--leaf); }
 .big-emoji { font-size: 84px; text-align: center; line-height: 1; animation: pop .45s ease-out; }
 .question { font-family: var(--display); font-weight: 400; font-size: clamp(23px, 5.4vw, 30px); text-align: center; margin: 0; line-height: 1.3; text-wrap: balance; }
 .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -146,7 +151,11 @@ h1 { font-family: var(--display); font-weight: 400; font-size: clamp(26px, 6vw, 
 .win h2 { font-family: var(--display); font-weight: 400; font-size: 38px; margin: 0; }
 .win p { margin: 0; font-size: 20px; line-height: 1.5; }
 .trophy { font-size: 110px; line-height: 1; animation: pop .6s ease-out; }
-.stats { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 440px; }
+.stat.time { display: flex; flex-direction: column; gap: 2px; background: #FFF1C2; }
+.stat .sl { font-size: 15px; }
+.stat.time b { font-size: 22px; }
+.stat .sq { font-size: 13px; font-weight: 500; color: var(--muted); line-height: 1.3; text-wrap: balance; }
 .stat { background: var(--leaf); border-radius: 14px; padding: 8px 16px; font-weight: 600; }
 .stat b { font-family: var(--display); font-weight: 400; font-size: 26px; display: block; font-variant-numeric: tabular-nums; }
 .win-btns { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
@@ -180,7 +189,11 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   .q-top { font-size: 13px; gap: 6px; flex-shrink: 0; }
   .chip { font-size: 13px; padding: 4px 10px; }
   .big-emoji { font-size: clamp(34px, 8dvh, 90px); flex-shrink: 0; }
-  .question { font-size: clamp(19px, 3dvh, 28px); flex-shrink: 0; }
+  .question { font-size: clamp(21px, 3.4dvh, 30px); flex-shrink: 0; }
+  .timer { font-size: 13px; padding: 2px 10px; min-width: 54px; }
+  .stats { gap: 8px; }
+  .stat { padding: 6px 10px; }
+  .stat b { font-size: 22px; }
   .answers { flex: 1; min-height: 0; grid-template-rows: 1fr 1fr; gap: 10px; }
   .ans { min-height: 0; padding: 6px; gap: 4px; font-size: clamp(16px, 2.5dvh, 22px); border-radius: 16px; box-shadow: 0 4px 0 var(--jungle); }
   .ans .e { font-size: clamp(26px, 5.5dvh, 48px); }
@@ -205,7 +218,9 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   .topic.all .ti { font-size: clamp(24px, 4dvh, 40px); }
 
   .win { justify-content: center; }
-  .trophy { font-size: clamp(60px, 12dvh, 110px); }
+  .trophy { font-size: clamp(50px, 9dvh, 110px); }
+  .win { gap: clamp(8px, 1.6dvh, 18px); }
+  .win p { font-size: 17px; }
   .win h2 { font-size: clamp(26px, 4dvh, 38px); }
 }
 </style>
@@ -572,6 +587,21 @@ const fill = document.getElementById("fill");
 const runner = document.getElementById("runner");
 
 let score = 0, right = 0, wrong = 0, deck = [], current = null, topic = null;
+let times = [], qStart = 0, tick = null;
+
+/* --- per-question stopwatch --- */
+function fmtTime(sec) {
+  if (sec < 60) return `${sec.toFixed(1)} שניות`;
+  const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+  return `${m}:${String(s).padStart(2, "0")} דקות`;
+}
+function startTimer() {
+  stopTimer();
+  qStart = performance.now();
+  const el = document.getElementById("timer");
+  tick = setInterval(() => { if (el) el.textContent = `⏱️ ${Math.floor((performance.now() - qStart) / 1000)}`; }, 250);
+}
+function stopTimer() { if (tick) { clearInterval(tick); tick = null; } }
 
 function shuffle(arr) { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 function nextFromDeck() { if (!deck.length) deck = shuffle(topic.qs); return deck.pop(); }
@@ -615,7 +645,8 @@ function updateScore(bump) {
 
 function showMenu() {
   hush();
-  score = 0; right = 0; wrong = 0; topic = null;
+  stopTimer();
+  score = 0; right = 0; wrong = 0; times = []; topic = null;
   runner.textContent = "🐆";
   updateScore(false);
   card.className = "card menu";
@@ -631,7 +662,7 @@ function showMenu() {
 
 function startTopic(id) {
   topic = id === "all" ? ALL : TOPICS.find(t => t.id === id);
-  score = 0; right = 0; wrong = 0; deck = shuffle(topic.qs);
+  score = 0; right = 0; wrong = 0; times = []; deck = shuffle(topic.qs);
   runner.textContent = topic.runner;
   updateScore(false);
   tone([440, 554], .1);
@@ -646,23 +677,29 @@ function showQuestion() {
   card.innerHTML = `
     <div class="q-top">
       <span><span class="topic-tag">${tag}</span> · שאלה ${right + wrong + 1}</span>
+      <span class="timer" id="timer" aria-label="זמן לשאלה">⏱️ 0</span>
       <span class="q-tools">
         <button class="chip" id="speak" type="button">🔊 תקריאו לי</button>
         <button class="chip" id="menu" type="button">🔙 נושא אחר</button>
       </span>
     </div>
-    <div class="big-emoji" aria-hidden="true">${current.e}</div>
     <h2 class="question">${current.q}</h2>
     <div class="answers">${opts.map((o, i) => `<button class="ans" type="button" id="ans${i}" data-i="${i}"><span class="e" aria-hidden="true">${o.e}</span><span class="t">${o.t}</span></button>`).join("")}</div>
     <div id="fb"></div>`;
   document.getElementById("speak").onclick = () => speak(current.q + " " + opts.map(o => o.t).join(", או "));
   document.getElementById("menu").onclick = showMenu;
   card.querySelectorAll(".ans").forEach(btn => btn.onclick = () => answer(opts, +btn.dataset.i));
+  startTimer();
 }
 
 function answer(opts, i) {
   const btns = card.querySelectorAll(".ans");
   btns.forEach(b => b.disabled = true);
+  stopTimer();
+  const took = (performance.now() - qStart) / 1000;
+  times.push({ sec: took, q: current.q });
+  const timerEl = document.getElementById("timer");
+  if (timerEl) { timerEl.textContent = `⏱️ ${took.toFixed(1)}`; timerEl.classList.add("stopped"); }
   card.classList.add("answered");
   const okIdx = opts.findIndex(o => o.ok);
   const fb = document.getElementById("fb");
@@ -688,6 +725,9 @@ function answer(opts, i) {
 }
 
 function showWin() {
+  stopTimer();
+  const sorted = times.slice().sort((a, b) => a.sec - b.sec);
+  const fast = sorted[0], slow = sorted[sorted.length - 1];
   card.className = "card win";
   card.innerHTML = `
     <div class="trophy" aria-hidden="true">🏆</div>
@@ -696,6 +736,8 @@ function showWin() {
     <div class="stats">
       <div class="stat"><b>${right}</b>תשובות נכונות</div>
       <div class="stat"><b>${wrong}</b>טעויות</div>
+      <div class="stat time fast"><span class="sl">⚡ השאלה הכי מהירה</span><b>${fmtTime(fast.sec)}</b><span class="sq">${fast.q}</span></div>
+      <div class="stat time slow"><span class="sl">🐢 השאלה הכי ארוכה</span><b>${fmtTime(slow.sec)}</b><span class="sq">${slow.q}</span></div>
     </div>
     <div class="win-btns">
       <button class="btn" id="again" type="button">עוד פעם 🔄</button>
