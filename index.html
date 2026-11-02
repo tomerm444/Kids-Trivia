@@ -156,21 +156,58 @@ h1 { font-family: var(--display); font-weight: 400; font-size: clamp(26px, 6vw, 
 @keyframes shake { 0%,100% { transform: translateX(0) } 25% { transform: translateX(-8px) } 75% { transform: translateX(8px) } }
 @keyframes wiggle { 0%,100% { transform: rotate(0) } 30% { transform: rotate(-2deg) scale(1.03) } 70% { transform: rotate(2deg) scale(1.03) } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
-/* phones: stretch the game to fill the whole screen height */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+/* phones: the whole game fits exactly one screen — sizes follow the screen height, nothing scrolls */
 @media (max-width: 700px) {
-  .wrap { min-height: 100%; box-sizing: border-box; padding-block: 14px 20px; gap: 14px; }
-  .card { flex: 1; justify-content: center; }
-  .card.menu { justify-content: flex-start; }
-  .topics { flex: 1; grid-auto-rows: 1fr; }
-  .topic { justify-content: center; }
-  .topic .ti { font-size: 56px; }
-  .topic .tn { font-size: 22px; }
-  .topic .tc { font-size: 15px; }
-  .big-emoji { font-size: 96px; }
-  .answers { gap: 14px; }
-  .ans { min-height: 120px; }
+  body { background-attachment: scroll; }
+  .wrap {
+    box-sizing: border-box;
+    height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    padding-block: 10px 14px; gap: 8px;
+  }
+  header { flex-shrink: 0; }
+  h1 { font-size: clamp(20px, 3.2dvh, 28px); }
+  .score { font-size: clamp(20px, 3.2dvh, 28px); padding: 2px 14px; min-width: 70px; box-shadow: 0 3px 0 var(--jungle); }
+  .score small { font-size: 12px; }
+  .trail { height: 40px; }
+  .track, .fill { top: 16px; height: 10px; }
+  .runner, .goal { font-size: 30px; }
+  .trail-label { font-size: 12px; margin-top: -2px; }
+
+  .card { flex: 1; min-height: 0; overflow: auto; padding: 12px 12px 14px; gap: clamp(8px, 1.4dvh, 14px); border-radius: 22px; box-shadow: 0 5px 0 var(--jungle); }
+  .q-top { font-size: 13px; gap: 6px; flex-shrink: 0; }
+  .chip { font-size: 13px; padding: 4px 10px; }
+  .big-emoji { font-size: clamp(34px, 8dvh, 90px); flex-shrink: 0; }
+  .question { font-size: clamp(19px, 3dvh, 28px); flex-shrink: 0; }
+  .answers { flex: 1; min-height: 0; grid-template-rows: 1fr 1fr; gap: 10px; }
+  .ans { min-height: 0; padding: 6px; gap: 4px; font-size: clamp(16px, 2.5dvh, 22px); border-radius: 16px; box-shadow: 0 4px 0 var(--jungle); }
+  .ans .e { font-size: clamp(26px, 5.5dvh, 48px); }
+  .ans.right { box-shadow: 0 4px 0 var(--good); }
+  .ans.wrong { box-shadow: 0 4px 0 var(--bad); }
+  /* after answering, the big picture makes room for a one-line feedback bar */
+  .card.answered .big-emoji { display: none; }
+  #fb { flex-shrink: 0; }
+  .feedback { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 6px 12px; padding: 8px 10px; font-size: 17px; border-radius: 14px; }
+  .feedback .pts { font-size: 22px; }
+  .feedback .btn { font-size: 19px; padding: 4px 20px; box-shadow: 0 3px 0 var(--jungle); }
+
+  .pick-title { font-size: clamp(20px, 3.2dvh, 28px); flex-shrink: 0; }
+  .pick-sub { font-size: 14px; margin-top: -6px; flex-shrink: 0; }
+  .topics { flex: 1; min-height: 0; grid-template-rows: repeat(4, minmax(0, 1fr)) auto; gap: 8px; }
+  .topic .tn { line-height: 1.1; text-wrap: balance; }
+  .topic.all { padding-block: 8px; }
+  .topic { min-height: 0; padding: 4px; gap: 2px; justify-content: center; border-radius: 16px; box-shadow: 0 4px 0 var(--jungle); }
+  .topic .ti { font-size: clamp(26px, 5dvh, 52px); }
+  .topic .tn { font-size: clamp(15px, 2.3dvh, 22px); }
+  .topic .tc { font-size: 12px; }
+  .topic.all .ti { font-size: clamp(24px, 4dvh, 40px); }
+
+  .win { justify-content: center; }
+  .trophy { font-size: clamp(60px, 12dvh, 110px); }
+  .win h2 { font-size: clamp(26px, 4dvh, 38px); }
 }
-@media (max-width: 420px) { .ans { font-size: 19px; padding: 12px 6px; } .ans .e { font-size: 40px; } .topic .tn { font-size: 20px; } }
 </style>
 
 </head>
@@ -626,6 +663,7 @@ function showQuestion() {
 function answer(opts, i) {
   const btns = card.querySelectorAll(".ans");
   btns.forEach(b => b.disabled = true);
+  card.classList.add("answered");
   const okIdx = opts.findIndex(o => o.ok);
   const fb = document.getElementById("fb");
   if (opts[i].ok) {
