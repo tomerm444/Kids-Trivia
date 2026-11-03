@@ -81,7 +81,8 @@ h1 { font-family: var(--display); font-weight: 400; font-size: clamp(26px, 6vw, 
   display: flex; flex-direction: column; gap: 18px;
 }
 .q-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 15px; font-weight: 600; flex-wrap: wrap; }
-.q-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+.q-tools { display: flex; gap: 8px; flex-basis: 100%; }
+#menu { margin-inline-start: auto; }
 .chip {
   font: inherit; font-size: 15px; background: var(--leaf); color: var(--jungle);
   border: 2px solid var(--jungle); border-radius: 999px; padding: 6px 12px; cursor: pointer;
@@ -192,7 +193,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   .chip { font-size: 13px; padding: 4px 10px; }
   .big-emoji { font-size: clamp(34px, 8dvh, 90px); flex-shrink: 0; }
   .question { font-size: clamp(21px, 3.4dvh, 30px); flex-shrink: 0; }
-  .timer { font-size: 13px; padding: 2px 10px; min-width: 54px; }
+  .timer { font-size: 13px; padding: 2px 10px; min-width: 74px; }
   .stats { gap: 8px; }
   .stat { padding: 6px 10px; }
   .stat b { font-size: 22px; }
@@ -315,7 +316,7 @@ const TOPICS = [
 🐺|איך קוראים לקבוצה של זאבים?|להקה 🐺|כוורת 🐝|שלולית 💧|כיתה 🏫
 -|איזו חיה אומרת ״הַב הַב״?|כלב 🐕|חתול 🐈|פרה 🐄|תרנגול 🐓
 -|איזו חיה אומרת ״מֶה״?|כבשה 🐑|פרה 🐄|חתול 🐈|ינשוף 🦉
--|איזו חיה אומרת ״קְוָוה קְוָוה״?|צפרדע 🐸|כלב 🐕|ברווז 🦆|סוס 🐎
+-|איזו חיה קופצת ליד הבריכה ואומרת ״קְוָוה קְוָוה״?|צפרדע 🐸|כלב 🐕|תרנגולת 🐔|סוס 🐎
 -|איזו חיה אוהבת להתפלש בבוץ ואומרת ״אוֹינְק״?|חזיר 🐷|כבשה 🐑|ארנב 🐇|יונה 🕊️
 -|איזו חיה שואגת הכי חזק מבין אלה?|אריה 🦁|ארנב 🐇|דג 🐟|פרפר 🦋
 -|איזו חיה מזמזמת ״בזזז״?|דבורה 🐝|נחש 🐍|כלב 🐕|דג 🐟
@@ -1167,15 +1168,15 @@ let times = [], qStart = 0, tick = null;
 
 /* --- per-question stopwatch --- */
 function fmtTime(sec) {
-  if (sec < 60) return `${sec.toFixed(1)} שניות`;
-  const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
-  return `${m}:${String(s).padStart(2, "0")} דקות`;
+  if (sec < 60) return `${sec.toFixed(2)} שניות`;
+  const m = Math.floor(sec / 60), s = (sec % 60).toFixed(2);
+  return `${m}:${s.padStart(5, "0")} דקות`;
 }
 function startTimer() {
   stopTimer();
   qStart = performance.now();
   const el = document.getElementById("timer");
-  tick = setInterval(() => { if (el) el.textContent = `⏱️ ${Math.floor((performance.now() - qStart) / 1000)}`; }, 250);
+  tick = setInterval(() => { if (el) el.textContent = `⏱️ ${((performance.now() - qStart) / 1000).toFixed(2)}`; }, 31);
 }
 function stopTimer() { if (tick) { clearInterval(tick); tick = null; } }
 
@@ -1260,7 +1261,7 @@ function showQuestion() {
   card.innerHTML = `
     <div class="q-top">
       <span><span class="topic-tag">${tag}</span> · שאלה ${right + wrong + 1}</span>
-      <span class="timer" id="timer" aria-label="זמן לשאלה">⏱️ 0</span>
+      <span class="timer" id="timer" aria-label="זמן לשאלה">⏱️ 0.00</span>
       <span class="q-tools">
         <button class="chip" id="speak" type="button">🔊 תקריאו לי</button>
         <button class="chip" id="menu" type="button">🔙 נושא אחר</button>
@@ -1284,7 +1285,7 @@ function answer(opts, i) {
   const took = (performance.now() - qStart) / 1000;
   times.push({ sec: took, q: current.q });
   const timerEl = document.getElementById("timer");
-  if (timerEl) { timerEl.textContent = `⏱️ ${took.toFixed(1)}`; timerEl.classList.add("stopped"); }
+  if (timerEl) { timerEl.textContent = `⏱️ ${took.toFixed(2)}`; timerEl.classList.add("stopped"); }
   card.classList.add("answered");
   const okIdx = opts.findIndex(o => o.ok);
   const fb = document.getElementById("fb");
